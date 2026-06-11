@@ -26,6 +26,10 @@ protected:
     UFUNCTION()
     void OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
+    /* スコアが計算されたらBluePrint側で発火するイベント */
+    UFUNCTION(BlueprintImplementableEvent, Category = "Rakugo Score")
+    void OnScoreCalculated(int32 FinalScore, const FString& EvaluationMessage, float ElapsedTime, float HitSpeed);
+
 public:	
 	virtual void Tick(float DeltaTime) override;
 
@@ -63,6 +67,9 @@ private:
     bool bIsGliding = true; // 今回はプロトタイプなので最初から展開状態
     float TargetPitch = 0.0f;
     float TargetRoll = 0.0f;
+
+    float GlidingTime = 0.0f;   // 滞空時間を記録する変数
+    void CalculateScore(AActor* HitActor, float SpeedAtHit);    // スコア計算関数
 
     /** 入力ハンドラ */
     void HandleGlideControl(const FInputActionValue& Value);

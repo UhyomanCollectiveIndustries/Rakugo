@@ -6,6 +6,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "Components/CapsuleComponent.h"
 
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
+
 ARakugoRaketeer::ARakugoRaketeer()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -51,6 +54,7 @@ void ARakugoRaketeer::Tick(float DeltaTime)
 
 	if (bIsGliding && !GetCharacterMovement()->IsMovingOnGround())
 	{
+		GlidingTime += DeltaTime;
 		SetPhysicsState(DeltaTime);
 	}
 }
@@ -122,6 +126,8 @@ void ARakugoRaketeer::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* Ot
 
 	if (OtherActor)
 	{
+		// 衝突した瞬間の速度を取得
+		float SpeedAtHit = GetCharacterMovement()->Velocity.Size();
 
 		// 先に「着地処理」を完了させてフラグを折ることで、フレーム内の連続ヒットをすべてシャットアウトする
 		bIsGliding = false;
@@ -145,5 +151,58 @@ void ARakugoRaketeer::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* Ot
 			UE_LOG(LogTemp, Display, TEXT("[SAGE] Landed on Normal Ground (No Tag)"));
 			if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Landed: No Tag"));
 		}
+
+		// スコア計算
+		CalculateScore(OtherActor, SpeedAtHit);
 	}
+}
+
+void ARakugoRaketeer::CalculateScore(AActor* HitActor, float SpeedAtHit)
+{
+	if (!HitActor)return;
+
+	// 衝突したエリアに応じた倍率の決定
+	float ScoreMultiplier = 1.0f;
+	FString EvaluationMessage = TEXT("普通の地面");
+
+	if (HitActor->ActorHasTag(FName("MountainTop")))
+	{
+		ScoreMultiplier = 2.0f;
+		EvaluationMessage = TEXT("山掛け");
+	}
+	else if (HitActor->ActorHasTag(FName("Swamp")))
+	{
+		ScoreMultiplier = 1.5f;
+		EvaluationMessage = TEXT("肥溜め");
+	}
+
+	// 計算
+	// 滞空時間 + 速度
+	float BaseScore = (GlidingTime * 100.0f) + SpeedAtHit;
+	int32 FinalScore = FMath::RoundToInt(BaseScore * ScoreMultiplier);
+
+	// 結果、ログの出力
+	UE_LOG(LogTemp, Log, TEXT("========================================="));
+	UE_LOG(LogTemp, Log, TEXT("[サゲフェーズ 結果発表]"));
+	UE_LOG(LogTemp, Log, TEXT("滞空時間: %.2f 秒"),GlidingTime);
+	UE_LOG(LogTemp, Log, TEXT("衝突速度: %.2f"),SpeedAtHit);
+	UE_LOG(LogTemp, Log, TEXT("エリア倍率: %.1fx"),ScoreMultiplier);
+	UE_LOG(LogTemp, Log, TEXT("獲得スコア: %d 点"),FinalScore);
+	UE_LOG(LogTemp, Log, TEXT("評価"),*EvaluationMessage);
+	UE_LOG(LogTemp, Log, TEXT("========================================="));
+
+	if (GEngine)
+	{
+		FString ScreenMsg = FString::Printf(TEXT("SCORE: %d | %s (Time: %.1fs / Speed: %.0f)"),
+			FinalScore, *EvaluationMessage, GlidingTime, SpeedAtHit);
+
+		// 画面左上ではなく、エディタの右下に「トースト通知（通知ポップアップ）」としてドンと出す
+		FNotificationInfo Info(FText::FromString(ScreenMsg));
+		Info.bFireAndForget = true;
+		Info.ExpireDuration = 5.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+	}
+
+	// Blueprintへスコア一式を投げる
+	OnScoreCalculated(FinalScore, EvaluationMessage, GlidingTime, SpeedAtHit);
 }
