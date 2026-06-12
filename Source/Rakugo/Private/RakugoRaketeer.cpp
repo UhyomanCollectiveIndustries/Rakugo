@@ -1,4 +1,5 @@
 ﻿#include "RakugoRaketeer.h"
+#include "RaketeerFloor.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -9,6 +10,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
+// コンストラクタ
 ARakugoRaketeer::ARakugoRaketeer()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -31,6 +33,7 @@ ARakugoRaketeer::ARakugoRaketeer()
 	GetCharacterMovement()->BrakingDecelerationFalling = 0.0f;
 }
 
+// BeginPlay
 void ARakugoRaketeer::BeginPlay()
 {
 	Super::BeginPlay();
@@ -48,6 +51,7 @@ void ARakugoRaketeer::BeginPlay()
 	GetCapsuleComponent()->OnComponentHit.AddDynamic(this, &ARakugoRaketeer::OnCapsuleHit);
 }
 
+// Tick
 void ARakugoRaketeer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -59,6 +63,7 @@ void ARakugoRaketeer::Tick(float DeltaTime)
 	}
 }
 
+// 入力ハンドラ
 void ARakugoRaketeer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -134,47 +139,34 @@ void ARakugoRaketeer::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* Ot
 		GetCharacterMovement()->GravityScale = 1.0f;
 		GetCharacterMovement()->SetMovementMode(MOVE_Falling);
 
-		// 具体的なタグ判定（エディタのActor -> Tagsに入れた文字）
-		if (OtherActor->ActorHasTag(FName("MountainTop")))
+		// 床判定のデフォルト値
+		float Multiplier = 1.0f;
+		FString Message = TEXT("普通の地面");
+		UNiagaraSystem* FXToSpawn = nullptr;
+
+		// 衝突したアクターが「床クラス」か判定
+		if (ARaketeerFloor* HitFloor = Cast<ARaketeerFloor>(OtherActor))
 		{
-			UE_LOG(LogTemp, Log, TEXT("[SAGE SUCCESS] Landed on MountainTop!"));
-			if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("SAGE: MountainTop!"));
-		}
-		else if (OtherActor->ActorHasTag(FName("Swamp")))
-		{
-			UE_LOG(LogTemp, Log, TEXT("[SAGE SUCCESS] Landed on Swamp!"));
-			if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("SAGE: Swamp!"));
-		}
-		else
-		{
-			// タグが何もない場合はここを通る
-			UE_LOG(LogTemp, Display, TEXT("[SAGE] Landed on Normal Ground (No Tag)"));
-			if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Landed: No Tag"));
+			// 床が持っている設定値を受け取る
+			Multiplier = HitFloor->ScoreMultiplier;
+			Message = HitFloor->EvaluationMessage;
+			FXToSpawn = HitFloor->LandedFX;
 		}
 
-		// スコア計算
-		CalculateScore(OtherActor, SpeedAtHit);
+		// パーティクルの生成(床クラスで設定されている場合のみ)
+		if (FXToSpawn)
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), FXToSpawn, Hit.Location, FRotator::ZeroRotator);
+		}
+
+		// スコア計算に変数を渡す
+		CalculateScore(OtherActor, SpeedAtHit,Multiplier,Message);
 	}
 }
 
-void ARakugoRaketeer::CalculateScore(AActor* HitActor, float SpeedAtHit)
+void ARakugoRaketeer::CalculateScore(AActor* HitActor, float SpeedAtHit,float ScoreMultiplier,FString EvaluationMessage)
 {
 	if (!HitActor)return;
-
-	// 衝突したエリアに応じた倍率の決定
-	float ScoreMultiplier = 1.0f;
-	FString EvaluationMessage = TEXT("普通の地面");
-
-	if (HitActor->ActorHasTag(FName("MountainTop")))
-	{
-		ScoreMultiplier = 2.0f;
-		EvaluationMessage = TEXT("山掛け");
-	}
-	else if (HitActor->ActorHasTag(FName("Swamp")))
-	{
-		ScoreMultiplier = 1.5f;
-		EvaluationMessage = TEXT("肥溜め");
-	}
 
 	// 計算
 	// 滞空時間 + 速度
