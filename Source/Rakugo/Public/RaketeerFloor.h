@@ -1,35 +1,32 @@
-#pragma once
+ï»¿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "NiagaraFunctionLibrary.h" 
-#include "NiagaraSystem.h"
+//#include "NiagaraFunctionLibrary.h" 
+//#include "NiagaraSystem.h"
 #include "RaketeerFloor.generated.h"
 
 UCLASS()
 class RAKUGO_API ARaketeerFloor : public AActor
 {
 	GENERATED_BODY()
-	
-public:
-	// ƒGƒfƒBƒ^‚Å°‚²‚Æ‚ÉŒÂ•Ê‚Éİ’è‚·‚éƒpƒ‰ƒ[ƒ^ŒS
 
-	/** ’n–Ê”»’è‚ÌƒƒO */
+public: 
+	// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
+	ARaketeerFloor();
+
+	// ã‚¨ãƒ‡ã‚£ã‚¿ã§åºŠã”ã¨ã«å€‹åˆ¥ã«è¨­å®šã™ã‚‹ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿éƒ¡
+
+	/** åœ°é¢åˆ¤å®šã®ãƒ­ã‚° */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floor|Settings")
-	FString EvaluationMessage = TEXT("•’Ê‚Ì’n–Ê");
+	FString EvaluationMessage = TEXT("æ™®é€šã®åœ°é¢");
 
-	/** °‚Éİ’è‚³‚ê‚½”{—¦ */
+	/** åºŠã«è¨­å®šã•ã‚ŒãŸå€ç‡ */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floor|Settings")
 	float ScoreMultiplier = 1.0f;
 
-	/** °‚Éİ’è‚³‚ê‚½ƒp[ƒeƒBƒNƒ‹ */
+	/** åºŠã«è¨­å®šã•ã‚ŒãŸãƒ‘ãƒ¼ãƒ†ã‚£ã‚¯ãƒ« */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floor|Settings")
-	UNiagaraSystem* LandedFX = nullptr;
-
-
-public:	
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
-	ARaketeerFloor();
-
+	class UNiagaraSystem* LandedFX;
 
 };

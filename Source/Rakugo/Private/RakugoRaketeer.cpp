@@ -10,6 +10,9 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+
 // コンストラクタ
 ARakugoRaketeer::ARakugoRaketeer()
 {
