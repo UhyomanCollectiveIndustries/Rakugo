@@ -40,6 +40,9 @@ ARakugoRaketeer::ARakugoRaketeer()
 void ARakugoRaketeer::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 始まったら演出スタート
+	StartIntroPhase();
 	
 	// Enhanced Input Mapping Context の追加
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
@@ -125,6 +128,29 @@ void ARakugoRaketeer::SetPhysicsState(float DeltaTime)
 
 	// 物理的に移動させる
 	GetCharacterMovement()->Velocity = NewVelocity;
+}
+
+void ARakugoRaketeer::StartIntroPhase() {
+	bIsGliding = false;	// 滑空フラグをfalse
+	GlidingTime = 0.0f;	// 時間をリセット
+
+	// 入力を一時的に無効化(コントローラの操作をブロック)
+	if (APlayerController* PC = Cast<APlayerController>(GetController())) {
+		SetActorTickEnabled(false);	// Tickも止めておく
+		PC->SetIgnoreMoveInput(true);
+	}
+}
+
+void ARakugoRaketeer::EndIntroPhase() {
+	bIsGliding = true;	// 滑空フラグをtrue
+
+	if (APlayerController* PC = Cast<APlayerController>(GetController())) {
+		SetActorTickEnabled(true);	// Tickを再開
+		PC->SetIgnoreMoveInput(true);	// 操作を可能に
+	}
+
+	// 初速(ヘリから飛び出した勢い)を前方に付ける
+	GetCharacterMovement()->Velocity = GetActorForwardVector() * ForwardSpeed;
 }
 
 void ARakugoRaketeer::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
