@@ -134,6 +134,13 @@ void ARakugoRaketeer::StartIntroPhase() {
 	bIsGliding = false;	// 滑空フラグをfalse
 	GlidingTime = 0.0f;	// 時間をリセット
 
+	// キャラクターの動きを完全に止める
+	if (GetCharcterMovemet()) {
+		GetCharacterMovement()->GravityScale = 0.0f;
+		GetCharacterMovement()->Velocity = FVector::ZeroVector;
+		GetCharacterMovement()->SetMovementMode(MOVE_None); // 物理移動を完全にOFF
+	}
+
 	// 入力を一時的に無効化(コントローラの操作をブロック)
 	if (APlayerController* PC = Cast<APlayerController>(GetController())) {
 		SetActorTickEnabled(false);	// Tickも止めておく
@@ -144,13 +151,21 @@ void ARakugoRaketeer::StartIntroPhase() {
 void ARakugoRaketeer::EndIntroPhase() {
 	bIsGliding = true;	// 滑空フラグをtrue
 
+	// 物理処理を初期値に設定
+	if (GetCharacterMovement())
+	{
+		// 滑空用のカスタム重力設定に戻す
+		GetCharacterMovement()->GravityScale = 1.0f;
+		GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+
+		// 初速(ヘリから飛び出した勢い)を前方に付ける
+		GetCharacterMovement()->Velocity = GetActorForwardVector() * ForwardSpeed;
+	}
+
 	if (APlayerController* PC = Cast<APlayerController>(GetController())) {
 		SetActorTickEnabled(true);	// Tickを再開
 		PC->SetIgnoreMoveInput(true);	// 操作を可能に
 	}
-
-	// 初速(ヘリから飛び出した勢い)を前方に付ける
-	GetCharacterMovement()->Velocity = GetActorForwardVector() * ForwardSpeed;
 }
 
 void ARakugoRaketeer::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
