@@ -74,6 +74,8 @@ protected:
     /** ゲーム開始時の初期化処理 */
 	virtual void BeginPlay() override;
 
+    virtual void PossessedBy(AController* NewController) override;
+
 public:
     /** Tick */
     virtual void Tick(float DeltaTime) override;
@@ -92,10 +94,6 @@ private:
 // Internal Functions
 //---------------------
 public:
-    /** 演出開始時に呼ばれる(入力を禁止し、滑空時間をリセット */
-    UFUNCTION(BlueprintCallable, Category = "Rakugo|Event")
-    void StartIntroPhase();
-
     /** 演出終了(ヘリから落ちる瞬間)に呼ばれる(入力を開始) */
     UFUNCTION(BlueprintCallable, Category = "Rakugo|Event")
     void EndIntroPhase();

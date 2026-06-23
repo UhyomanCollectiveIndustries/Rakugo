@@ -54,8 +54,20 @@ void ARakugoRaketeer::BeginPlay()
 		}
 	}
 
-	// カプセルコンポーネントが何かにぶつかった(Hitした)ときに呼ばれるイベントを登録
 	GetCapsuleComponent()->OnComponentHit.AddDynamic(this, &ARakugoRaketeer::OnCapsuleHit);
+}
+
+void ARakugoRaketeer::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	// 滑空状態を開始
+	bIsGliding = true;
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+		GetCharacterMovement()->Velocity = GetActorForwardVector() * ForwardSpeed;
+	}
 }
 
 // Tick
@@ -95,52 +107,6 @@ void ARakugoRaketeer::HandleGlideControl(const FInputActionValue& Value)
 	TargetRoll = ControlVector.X;
 	TargetPitch = ControlVector.Y;
 }
-
-//========================
-// GamePlay Flow
-//========================
-
-void ARakugoRaketeer::StartIntroPhase()
-{
-	bIsGliding = false;	// 滑空フラグをfalse
-	GlidingTime = 0.0f;	// 時間をリセット
-
-	// キャラクターの動きを完全に止める
-	if (GetCharacterMovement()) {
-		GetCharacterMovement()->StopMovementImmediately();
-		GetCharacterMovement()->GravityScale = 0.0f;
-		GetCharacterMovement()->SetMovementMode(MOVE_None);
-	}
-
-	// 入力を一時的に無効化(コントローラの操作をブロック)
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		PC->SetIgnoreMoveInput(true);
-	}
-}
-
-void ARakugoRaketeer::EndIntroPhase()
-{
-	// プレイヤーの操作入力を有効化
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		PC->SetIgnoreMoveInput(false);
-	}
-
-	bIsGliding = true;	// 滑空フラグをtrue
-
-	// 物理処理を初期値に設定
-	if (GetCharacterMovement())
-	{
-		// 滑空用のカスタム重力設定に戻す
-		GetCharacterMovement()->GravityScale = 0.0f;
-		GetCharacterMovement()->SetMovementMode(MOVE_Flying);
-
-		// 初速(ヘリから飛び出した勢い)を前方に付ける
-		GetCharacterMovement()->Velocity = GetActorForwardVector() * ForwardSpeed;
-	}
-}
-
 
 //==================================
 // Physics/Movement
@@ -183,6 +149,25 @@ void ARakugoRaketeer::SetPhysicsState(float DeltaTime)
 
 	// 物理的に移動させる
 	GetCharacterMovement()->Velocity = NewVelocity;
+}
+
+//=====================
+// GamePlayFlow
+//=====================
+
+void ARakugoRaketeer::EndIntroPhase()
+{
+	// プレイヤーの見た目を表示する
+	SetActorHiddenInGame(false);
+
+	// 操作のロックを解除
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		PC->SetIgnoreMoveInput(false);
+
+		FInputModeGameOnly InputMode;
+		PC->SetInputMode(InputMode);
+	}
 }
 
 //=====================
