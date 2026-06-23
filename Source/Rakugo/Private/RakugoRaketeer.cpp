@@ -13,6 +13,10 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 
+//=======================
+// LifeCycle
+//=======================
+
 // コンストラクタ
 ARakugoRaketeer::ARakugoRaketeer()
 {
@@ -40,9 +44,6 @@ ARakugoRaketeer::ARakugoRaketeer()
 void ARakugoRaketeer::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// 始まったら演出スタート
-	StartIntroPhase();
 	
 	// Enhanced Input Mapping Context の追加
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
@@ -69,6 +70,10 @@ void ARakugoRaketeer::Tick(float DeltaTime)
 	}
 }
 
+//=====================
+// Input
+//=====================
+
 // 入力ハンドラ
 void ARakugoRaketeer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -90,6 +95,56 @@ void ARakugoRaketeer::HandleGlideControl(const FInputActionValue& Value)
 	TargetRoll = ControlVector.X;
 	TargetPitch = ControlVector.Y;
 }
+
+//========================
+// GamePlay Flow
+//========================
+
+void ARakugoRaketeer::StartIntroPhase()
+{
+	bIsGliding = false;	// 滑空フラグをfalse
+	GlidingTime = 0.0f;	// 時間をリセット
+
+	// キャラクターの動きを完全に止める
+	if (GetCharacterMovement()) {
+		GetCharacterMovement()->StopMovementImmediately();
+		GetCharacterMovement()->GravityScale = 0.0f;
+		GetCharacterMovement()->SetMovementMode(MOVE_None);
+	}
+
+	// 入力を一時的に無効化(コントローラの操作をブロック)
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		PC->SetIgnoreMoveInput(true);
+	}
+}
+
+void ARakugoRaketeer::EndIntroPhase()
+{
+	// プレイヤーの操作入力を有効化
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		PC->SetIgnoreMoveInput(false);
+	}
+
+	bIsGliding = true;	// 滑空フラグをtrue
+
+	// 物理処理を初期値に設定
+	if (GetCharacterMovement())
+	{
+		// 滑空用のカスタム重力設定に戻す
+		GetCharacterMovement()->GravityScale = 0.0f;
+		GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+
+		// 初速(ヘリから飛び出した勢い)を前方に付ける
+		GetCharacterMovement()->Velocity = GetActorForwardVector() * ForwardSpeed;
+	}
+}
+
+
+//==================================
+// Physics/Movement
+//==================================
 
 void ARakugoRaketeer::SetPhysicsState(float DeltaTime)
 {
@@ -121,52 +176,18 @@ void ARakugoRaketeer::SetPhysicsState(float DeltaTime)
 
 	// 一時的にムーブメントモールを「Falling」に
 	// これにより、UEの移動コンポーネントが前方の壁や床との衝突を正しく計算するようになる。
-	if (GetCharacterMovement()->MovementMode != MOVE_Falling)
+	if (GetCharacterMovement()->MovementMode != MOVE_Flying)
 	{
-		GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+		GetCharacterMovement()->SetMovementMode(MOVE_Flying);
 	}
 
 	// 物理的に移動させる
 	GetCharacterMovement()->Velocity = NewVelocity;
 }
 
-void ARakugoRaketeer::StartIntroPhase() {
-	bIsGliding = false;	// 滑空フラグをfalse
-	GlidingTime = 0.0f;	// 時間をリセット
-
-	// キャラクターの動きを完全に止める
-	if (GetCharcterMovemet()) {
-		GetCharacterMovement()->GravityScale = 0.0f;
-		GetCharacterMovement()->Velocity = FVector::ZeroVector;
-		GetCharacterMovement()->SetMovementMode(MOVE_None); // 物理移動を完全にOFF
-	}
-
-	// 入力を一時的に無効化(コントローラの操作をブロック)
-	if (APlayerController* PC = Cast<APlayerController>(GetController())) {
-		SetActorTickEnabled(false);	// Tickも止めておく
-		PC->SetIgnoreMoveInput(true);
-	}
-}
-
-void ARakugoRaketeer::EndIntroPhase() {
-	bIsGliding = true;	// 滑空フラグをtrue
-
-	// 物理処理を初期値に設定
-	if (GetCharacterMovement())
-	{
-		// 滑空用のカスタム重力設定に戻す
-		GetCharacterMovement()->GravityScale = 1.0f;
-		GetCharacterMovement()->SetMovementMode(MOVE_Falling);
-
-		// 初速(ヘリから飛び出した勢い)を前方に付ける
-		GetCharacterMovement()->Velocity = GetActorForwardVector() * ForwardSpeed;
-	}
-
-	if (APlayerController* PC = Cast<APlayerController>(GetController())) {
-		SetActorTickEnabled(true);	// Tickを再開
-		PC->SetIgnoreMoveInput(true);	// 操作を可能に
-	}
-}
+//=====================
+// Events
+//=====================
 
 void ARakugoRaketeer::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
@@ -188,7 +209,7 @@ void ARakugoRaketeer::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* Ot
 		FString Message = TEXT("普通の地面");
 		UNiagaraSystem* FXToSpawn = nullptr;
 
-		// 衝突したアクターが「床クラス」か判定
+		// 床クラスからスコア設定とエフェクトを取得
 		if (ARaketeerFloor* HitFloor = Cast<ARaketeerFloor>(OtherActor))
 		{
 			// 床が持っている設定値を受け取る
@@ -198,9 +219,14 @@ void ARakugoRaketeer::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* Ot
 		}
 
 		// パーティクルの生成(床クラスで設定されている場合のみ)
-		if (FXToSpawn)
+		if (FXToSpawn && GetWorld())
 		{
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), FXToSpawn, Hit.Location, FRotator::ZeroRotator);
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				GetWorld(),
+				FXToSpawn,
+				Hit.Location,
+				FRotator::ZeroRotator
+			);
 		}
 
 		// スコア計算に変数を渡す
@@ -208,7 +234,11 @@ void ARakugoRaketeer::OnCapsuleHit(UPrimitiveComponent* HitComponent, AActor* Ot
 	}
 }
 
-void ARakugoRaketeer::CalculateScore(AActor* HitActor, float SpeedAtHit,float ScoreMultiplier,FString EvaluationMessage)
+//===========================
+// Internal Logic
+//===========================
+
+void ARakugoRaketeer::CalculateScore(AActor* HitActor, float SpeedAtHit,float ScoreMultiplier,const FString EvaluationMessage)
 {
 	if (!HitActor)return;
 
