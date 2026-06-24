@@ -44,15 +44,6 @@ ARakugoRaketeer::ARakugoRaketeer()
 void ARakugoRaketeer::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	// Enhanced Input Mapping Context の追加
-	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
 
 	GetCapsuleComponent()->OnComponentHit.AddDynamic(this, &ARakugoRaketeer::OnCapsuleHit);
 }
@@ -157,17 +148,30 @@ void ARakugoRaketeer::SetPhysicsState(float DeltaTime)
 
 void ARakugoRaketeer::EndIntroPhase()
 {
+	UE_LOG(LogTemp, Log, TEXT("エンドフェーズスタート"));
+
 	// プレイヤーの見た目を表示する
 	SetActorHiddenInGame(false);
+	UE_LOG(LogTemp, Log, TEXT("見た目表示"));
 
 	// 操作のロックを解除
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		PC->SetIgnoreMoveInput(false);
+		UE_LOG(LogTemp, Log, TEXT("操作可能"));
+
+		// Enhanced Input Mapping Context の追加
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+			UE_LOG(LogTemp, Log, TEXT("マッピングコンテキスト登録完了！"));
+		}
 
 		FInputModeGameOnly InputMode;
 		PC->SetInputMode(InputMode);
 	}
+
+	UE_LOG(LogTemp, Log, TEXT("エンドフェーズ終了"));
 }
 
 //=====================
