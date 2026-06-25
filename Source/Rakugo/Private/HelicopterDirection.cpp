@@ -3,16 +3,19 @@
 // コンストラクタ
 AHelicopterDirection::AHelicopterDirection()
 {
+	PrimaryActorTick.bCanEverTick = true; // Tickを動かすために必要
+
 	//デフォルト値の設定
 	UpwardSpeed = 200.0f;			// 1秒間に2m上昇
-	RotorRotationSpeed = 720.0f;	//1秒間に2回転
+	RotorRotationSpeed = 720.0f;	// 1秒間に2回転
 
 	// 本体メッシュの作成とルートへの設定
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
+	RootComponent = BodyMesh;
 
 	// 羽メッシュの作成と本体へのアタッチ
 	RotorMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("RotorMesh"));
-	RotorMesh->SetupAttachment(RootComponent);
+	RotorMesh->SetupAttachment(BodyMesh);
 }
 
 // BeginPlay

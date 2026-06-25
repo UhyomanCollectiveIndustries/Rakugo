@@ -10,15 +10,15 @@ class RAKUGO_API AHelicopterDirection : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
+	// コンストラクタ
 	AHelicopterDirection();
 
 protected:
-	// Called when the game starts or when spawned
+	// BeginPlay
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
+	// Tick
 	virtual void Tick(float DeltaTime) override;
 
 	// ヘリコプター本体のメッシュ
@@ -30,10 +30,10 @@ public:
 	UStaticMeshComponent* RotorMesh;
 
 	// 上昇スピード
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hericopter|Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hericopter|Settings")
 	float UpwardSpeed;
 
 	// 羽の回転スピード
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hericopter|Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hericopter|Settings")
 	float RotorRotationSpeed;
 };	
